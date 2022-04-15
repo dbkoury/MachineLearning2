@@ -8,13 +8,15 @@ options(scipen = 10000)
 # install.packages("MLmetrics")
 library(MLmetrics)
 # install.packages("unbalanced")
-library(unbalanced)
+library(unbalanced) # https://rpubs.com/DeclanStockdale/799284
 library(ggplot2)
 library(caret)
 library(dplyr)
 library(MASS)
 # install.packages("naniar")
 library(naniar)
+library(glmnet)
+library(pls)
 
 ##### Import data #####
 train = read.csv("train.csv",  row.names="id")
@@ -252,11 +254,51 @@ summary(QDAmod)
 
 
 ##### Lasso #####
+x.train = model.matrix(target~.,underTrain)[,-1]
+y.train = underTrain$target
 
+x.test = model.matrix(target~., validate)[,-1]
+y.test = validate$target
+
+summary(y.train)
+summary(y.test)
+
+set.seed(521)
+grid = 10^seq(-2,4,length=200)
+
+lasso = glmnet(x.train,y.train,alpha = 1,lambda=grid,family=binomial)
+cv.out.lasso = cv.glmnet(x.train,y.train,alpha=1,lambda=grid,family=binomial,nfolds=12)
+bestLambda = cv.out.lasso$lambda.min
+bestLambda # 0.01
+
+lasso.pred = predict(lasso,s=bestLambda,newx=x.test)
+
+target.hat = ifelse(lasso.pred>=0.5,1,0)
+table(y.test,target.hat)
+mean(y.test == target.hat) # 0.9188746
+
+normalizedGini(as.numeric(y.test),as.numeric(target.hat)) # 0.06392911
+NormalizedGini(as.numeric(target.hat),as.numeric(y.test)) # 0.06392911
 
 ##### Ridge #####
+set.seed(521)
+power.value = seq(from=10, to=-2,length=100)
+grid = 10^power.value
 
-##### PCA #####
+ridge = glmnet(x.train,y.train,alpha=0,lambda=grid,thresh=1e-12)
+cv.out.ridge = cv.glmnet(x.train,y.train,alpha=0,lambda=grid,family=binomial,thres = 1e-12,nfolds=12)
+
+bestLambda = cv.out.ridge$lambda.min
+bestLambda # 0.02146141
+
+ridgePred = predict(cv.out.ridge,s=bestLambda,newx = x.test)
+
+target.hat = ifelse(ridgePred>=0.5,1,0)
+table(y.test,target.hat)
+mean(y.test == target.hat) # 0.8891764
+
+normalizedGini(as.numeric(y.test),as.numeric(target.hat)) # 0.09039913
+NormalizedGini(as.numeric(target.hat),as.numeric(y.test)) # 0.09039913
 
 ##### randomForest #####
 
