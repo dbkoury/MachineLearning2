@@ -301,11 +301,54 @@ normalizedGini(as.numeric(y.test),as.numeric(target.hat)) # 0.09039913
 NormalizedGini(as.numeric(target.hat),as.numeric(y.test)) # 0.09039913
 
 ##### randomForest #####
+library(randomForest)
+set.seed(521)
+memory.limit(size=56000)
+start = Sys.time()
+modelrf <- randomForest(target~.,data=underTrain,ntree=200,importance=TRUE)
+end = Sys.time()
+end-start #run time 1min
+rfpred <- predict(modelrf, newdata=validate)
+table(rfpred,validate$target) 
+mean(rfpred==validate$target) #0.5940704
+#      0      1
+#0 102643   2800
+#1  69412   3708
+normalizedGini(as.numeric(validate$target),as.numeric(rfpred)) #0.1691966
+NormalizedGini(as.numeric(rfpred),as.numeric(validate$target)) #0.1691966
 
 ##### Bagging #####
+library(randomForest)
+set.seed(521)
+start = Sys.time()
+modelbag <- randomForest(target~.,data=underTrain,ntree=200,mtry=50,importance=TRUE)
+end = Sys.time()
+end-start #2.2min
+bagpred <- predict(modelbag,newdata=validate)
+mean(bagpred==validate$target) # 0.5934
+table(bagpred,validate$target)
+#      0      1
+#0 102323   2865
+#1  69732   3643
 
+normalizedGini(as.numeric(validate$target),as.numeric(bagpred)) #0.1575381
 
 ##### Boosting #####
+library(gbm)
+set.seed(521)
+start = Sys.time()
+boost <- gbm(as.character(target)~.,underTrain, distribution="bernoulli"
+             ,n.trees= 100,interaction.depth=3, shrinkage=0.02)
+end = Sys.time()
+end - start
+pred.gbm <- predict(boost,validate,type = "response")
+yhat <- ifelse(pred.gbm>0.5,0,1)
+mean(yhat == validate$target) #0.405
+table(yhat,validate$target) #
+#     0      1
+#0  69687   3703
+#1 102368   2805
+normalizedGini(as.numeric(validate$target),as.numeric(yhat)) #-0.1613004 
 
 
 ##### XGBoost #####
