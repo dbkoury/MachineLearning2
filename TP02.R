@@ -264,3 +264,39 @@ summary(QDAmod)
 
 
 ##### Boosting #####
+
+
+##### XGBoost #####
+  #turn train2 features into matrix
+Train.X <- data.matrix(scale(trainTransformed[-1]))
+Train.Y <- as.numeric(trainTransformed$target)
+Train.Y[Train.Y == "1"] <- "0"
+Train.Y[Train.Y == "2"] <- "1"
+
+Test.X <- data.matrix(scale(testTransformed[-1]))
+Test.Y <- as.numeric(testTransformed$target)
+Test.Y[Test.Y == "1"] <- "0"
+Test.Y[Test.Y == "2"] <- "1"
+
+Train.X = xgb.DMatrix(data=Train.X, label=Train.Y)
+Test.X = xgb.DMatrix(data=Test.X, label=Test.Y)
+
+xgbmodel=xgboost( data = Train.X, #X features in matrix form
+  #label = as.numeric(Train.Y), # target is a vector
+  eta = .5, # learning rate
+  nthread = 1, # number of parallel threads
+  nrounds = 50, # number of rounds of predictions
+  objective = "binary:logistic",  # logistic
+  max.depth  = 2,  # number of splits
+  eval_metric = "error",
+  verbose = 1) # print training error
+
+(Importance <- xgb.importance(colnames(Train.X), model = xgbmodel))
+
+xgbpreds <- predict(xgbmodel, newdata=Test.X)
+summary(xgbpreds)
+
+predictions <- as.numeric(xgbpreds > 0.5)
+mean(predictions==Test.Y) ## accuracy rate 0.5906319
+table(predictions, Test.Y)
+normalizedGini(as.numeric(Test.Y),predictions) # 0.1836209
