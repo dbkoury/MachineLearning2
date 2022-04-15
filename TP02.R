@@ -249,8 +249,48 @@ normalizedGini(as.numeric(validate$target),as.numeric(LDApred$class)) # 0.162934
 NormalizedGini(as.numeric(LDApred$class),as.numeric(validate$target)) # 0.1629344
 
 ##### QDA #####
-QDAmod = qda(target~.-ps_ind_12_bin-ps_ind_09_bin,data=underTrain,family="binomial")
+QDAmod = qda(target~.,data=underTrain,family="binomial")
 summary(QDAmod)
+
+QDApred = QDAmod %>% predict(testTransformed)
+names(QDApred)
+
+mean(QDApred$class==testTransformed$target) # 0.3615811
+table(QDApred$class,testTransformed$target)
+
+# Calculating Normalized Gini Coefficient
+normalizedGini(as.numeric(testTransformed$target),as.numeric(QDApred$class)) # 0.0162174
+NormalizedGini(as.numeric(QDApred$class),as.numeric(testTransformed$target)) # 0.0162174
+
+##### KNN #####
+# Need a smaller training set to run KNN
+# Divide train into train3 (smaller training set) and validate2
+set.seed(521)
+divideData = createDataPartition(train$target,p = 0.2, list=FALSE)
+train3 = train[divideData,]
+validate2 = train[-divideData,]
+
+# Balance train3
+predictorVariables = train3[,-1]
+responseVariable = train3[,1]
+
+undersampledData = ubBalance(predictorVariables,responseVariable,type='ubUnder',verbose=TRUE)
+underTrain2 = cbind(undersampledData$Y,undersampledData$X)
+names(underTrain2)[names(underTrain2) == "undersampledData$Y"] <- "target"
+head(underTrain2)
+
+KNNmod = train(target~., data=underTrain2,method="knn",preProcess = c("center","scale"))
+
+KNNmod$bestTune #9
+plot(KNNmod) #9 
+
+KNNpred <- predict(KNNmod, newdata=validate)
+
+confusionMatrix(KNNpred,validate$target)
+
+normalizedGini(as.numeric(validate$target),as.numeric(KNNpred)) # 0.1099644
+NormalizedGini(as.numeric(KNNpred),as.numeric(validate$target)) # 0.1099644
+
 
 
 ##### Lasso #####
