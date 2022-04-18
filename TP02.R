@@ -478,3 +478,40 @@ table(predictions, Test.Y)
 
 # Normalized Gini Coefficient
 normalizedGini(as.numeric(Test.Y),predictions) # 0.1836209
+
+##### LightGBM #####
+#install.packages("lightgbm")
+library(lightgbm)
+lgbm_train <- lgb.Dataset(Train.X, label = Train.Y)
+lgbm_model <- lightgbm(
+  params = list(
+    objective = "binary"
+    , boosting = "gbdt"
+    , learning_rate = 0.01
+    , max_bin = 255
+    , num_leaves = 31
+    , min_data_in_leaf = 1500
+    , feature_fraction = 0.7
+    , bagging_freq = 1
+    , bagging_fraction = 0.7
+    , lambda_l1 = 1
+    , lambda_l2 = 1
+  )
+  , data = lgbm_train
+  , nrounds = 1400L
+)
+  #Predicting with Validation Data
+lgbm_test <- lgb.Dataset(Test.X, label = Test.Y)
+lgbmpreds <- predict(lgbm_model, data=Test.X)
+summary(lgbmpreds)
+predictions <- as.numeric(lgbmpreds > 0.5)
+mean(predictions==Test.Y) ## accuracy rate 0.5706053
+table(predictions, Test.Y)
+normalizedGini(as.numeric(Test.Y),predictions) # 0.1891892
+
+  #Predicting with Train Data
+lgbmpreds <- predict(lgbm_model, data=Train.X)
+predictions <- as.numeric(lgbmpreds > 0.5)
+mean(predictions==Train.Y) ## accuracy rate 0.6162584
+table(predictions, Train.Y)
+normalizedGini(as.numeric(Train.Y),predictions) # 0.2355279
