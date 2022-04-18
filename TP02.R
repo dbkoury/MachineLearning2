@@ -24,6 +24,8 @@ library(randomForest)
 library(gbm)
 # install.packages("xgboost")
 library(xgboost)
+#install.packages("lightgbm")
+library(lightgbm)
 
 ##### Import data #####
 # available on Porto Seguro Competition kaggle page
@@ -480,8 +482,6 @@ table(predictions, Test.Y)
 normalizedGini(as.numeric(Test.Y),predictions) # 0.1836209
 
 ##### LightGBM #####
-#install.packages("lightgbm")
-library(lightgbm)
 lgbm_train <- lgb.Dataset(Train.X, label = Train.Y)
 lgbm_model <- lightgbm(
   params = list(
